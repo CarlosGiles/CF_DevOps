@@ -1,0 +1,30 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Build and Push Docker image to ACR
+      run: |
+        az acr build --registry ${{ vars.AZURE_PREFIX }}acr --image ${{ vars.AZURE_PREFIX }}-image .
+
+    - name: Deploy to Azure Container Apps
+      run: |
+        az containerapp update \
+          --name ${{ vars.AZURE_PREFIX }}containerapp \
+          --resource-group ${{ vars.AZURE_RG }} \
+          --image ${{ vars.AZURE_PREFIX }}acr.azurecr.io/${{ vars.AZURE_PREFIX }}-image:latest
